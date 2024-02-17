@@ -90,20 +90,31 @@ class ImporterSource(DescriptionBasedSource):
         if not isinstance(entry, Transaction): return None
         postings = entry.postings #type: List[Posting]
         to_mutate = []
+        is_first_cleared = False
         for i, posting in enumerate(postings):
             if posting.account != self.account: continue
             if isinstance(posting.meta, dict):
-                posting.meta["source_desc"] = entry.narration
-                posting.meta["date"] = entry.date
-                break
+                if is_first_cleared:
+                    posting.meta["cleared"] = True
+                else:
+                    posting.meta["source_desc"] = entry.narration
+                    posting.meta["date"] = entry.date
+                    is_first_cleared = True
             else:
                 to_mutate.append(i)
-                break
+
         for i in to_mutate:
-            p = postings.pop(i)
-            p = Posting(p.account, p.units, p.cost, p.price, p.flag,
-                        {"source_desc":entry.narration, "date": entry.date})
-            postings.insert(i, p)
+            p = postings[i]
+            meta = {}
+
+            if is_first_cleared:
+                meta["cleared"] = True
+            else:
+                meta["source_desc"] = entry.narration
+                meta["date"] = entry.date
+                is_first_cleared = True
+
+            postings[i] = Posting(p.account, p.units, p.cost, p.price, p.flag, meta)
 
     def _get_source_posting(self, entry:Transaction) -> Optional[Posting]:
         for posting in entry.postings:
