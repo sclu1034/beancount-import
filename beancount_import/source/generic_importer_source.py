@@ -18,7 +18,7 @@ from collections import OrderedDict
 import itertools
 from typing import Hashable, List, Dict, Optional
 
-from beancount.core.data import Balance, Transaction, Posting,  Directive
+from beancount.core.data import Balance, Transaction, Posting, Directive, Price
 from beancount.core.amount import Amount
 from beancount.core.convert import get_weight
 from beancount.ingest.importer import ImporterProtocol
@@ -114,6 +114,8 @@ class ImporterSource(DescriptionBasedSource):
     def _get_key_from_imported_entry(self, entry:Directive) -> Hashable:
         if isinstance(entry, Balance):
             return (entry.account, entry.date, entry.amount)
+        if isinstance(entry, Price):
+            return (entry.currency, entry.date, entry.amount)
         if not isinstance(entry, Transaction):
             raise ValueError("currently, ImporterSource only supports Transaction and Balance Directive. Got entry {}".format(entry))
         source_posting = self._get_source_posting(entry)
